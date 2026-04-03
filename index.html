@@ -21,6 +21,9 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden}
 .dpad-btn:active{transform:scale(.9)!important;box-shadow:none!important}
 .glow-green{text-shadow:0 0 20px #39ff14,0 0 40px #39ff14}
 .glow-box{box-shadow:0 0 15px rgba(57,255,20,.3)}
+canvas {
+  touch-action: none;
+}
 </style>
   <style>body { box-sizing: border-box; }</style>
  </head>
@@ -65,13 +68,13 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden}
      <canvas id="canvas" class="rounded-xl" style="border:2px solid #1e293b;background:#020617"></canvas>
     </div><!-- D-Pad -->
     <div class="shrink-0 pb-4 pt-2 flex justify-center">
-     <div class="grid grid-cols-3 gap-2" style="width:180px;height:180px">
-      <div></div><button onclick="setDir(0,-1)" class="dpad-btn rounded-xl flex items-center justify-center" style="background:#1e293b;border:1px solid #334155;box-shadow:0 4px 8px rgba(0,0,0,.4)"> <i data-lucide="chevron-up" style="color:#39ff14;width:28px;height:28px"></i> </button>
-      <div></div><button onclick="setDir(-1,0)" class="dpad-btn rounded-xl flex items-center justify-center" style="background:#1e293b;border:1px solid #334155;box-shadow:0 4px 8px rgba(0,0,0,.4)"> <i data-lucide="chevron-left" style="color:#39ff14;width:28px;height:28px"></i> </button>
+     <div class="grid grid-cols-3 gap-3 w-[240px] h-[240px] sm:w-[200px] sm:h-[200px]">
+      <div></div><button onclick="setDir(0,-1)" class="dpad-btn rounded-xl flex items-center justify-center" style="background:#1e293b;border:1px solid #334155;box-shadow:0 4px 8px rgba(0,0,0,.4)"> <i data-lucide="chevron-up" style="color:#39ff14;width:36px;height:36px"></i> </button>
+      <div></div><button onclick="setDir(-1,0)" class="dpad-btn rounded-xl flex items-center justify-center" style="background:#1e293b;border:1px solid #334155;box-shadow:0 4px 8px rgba(0,0,0,.4)"> <i data-lucide="chevron-left" style="color:#39ff14;width:36px;height:36px"></i> </button>
       <div class="rounded-xl flex items-center justify-center" style="background:#0f172a;border:1px solid #1e293b">
        <div class="w-3 h-3 rounded-full" style="background:#334155"></div>
-      </div><button onclick="setDir(1,0)" class="dpad-btn rounded-xl flex items-center justify-center" style="background:#1e293b;border:1px solid #334155;box-shadow:0 4px 8px rgba(0,0,0,.4)"> <i data-lucide="chevron-right" style="color:#39ff14;width:28px;height:28px"></i> </button>
-      <div></div><button onclick="setDir(0,1)" class="dpad-btn rounded-xl flex items-center justify-center" style="background:#1e293b;border:1px solid #334155;box-shadow:0 4px 8px rgba(0,0,0,.4)"> <i data-lucide="chevron-down" style="color:#39ff14;width:28px;height:28px"></i> </button>
+      </div><button onclick="setDir(1,0)" class="dpad-btn rounded-xl flex items-center justify-center" style="background:#1e293b;border:1px solid #334155;box-shadow:0 4px 8px rgba(0,0,0,.4)"> <i data-lucide="chevron-right" style="color:#39ff14;width:36px;height:36px"></i> </button>
+      <div></div><button onclick="setDir(0,1)" class="dpad-btn rounded-xl flex items-center justify-center" style="background:#1e293b;border:1px solid #334155;box-shadow:0 4px 8px rgba(0,0,0,.4)"> <i data-lucide="chevron-down" style="color:#39ff14;width:36px;height:36px"></i> </button>
       <div></div>
      </div>
     </div>
@@ -310,6 +313,35 @@ document.addEventListener('keydown', e=>{
   if(e.key==='Escape'&&!paused&&alive)pauseGame();
   else if(e.key==='Escape'&&paused)resumeGame();
 });
+
+// 📱 Swipe Controls
+let touchStartX = 0;
+let touchStartY = 0;
+
+canvas.addEventListener("touchstart", (e) => {
+  const touch = e.touches[0];
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+}, { passive: true });
+
+canvas.addEventListener("touchend", (e) => {
+  const touch = e.changedTouches[0];
+  const dx = touch.clientX - touchStartX;
+  const dy = touch.clientY - touchStartY;
+
+  // Minimum swipe distance (ignore small touches)
+  if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+
+  if (Math.abs(dx) > Math.abs(dy)) {
+    // Horizontal swipe
+    if (dx > 0) setDir(1, 0);   // Right
+    else setDir(-1, 0);         // Left
+  } else {
+    // Vertical swipe
+    if (dy > 0) setDir(0, 1);   // Down
+    else setDir(0, -1);         // Up
+  }
+}, { passive: true });
 
 window.addEventListener('resize', ()=>{
   if(!document.getElementById('game-screen').classList.contains('hidden')){
