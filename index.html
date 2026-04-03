@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snake Game</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&amp;family=Rajdhani:wght@400;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+html,body{margin:0;padding:0;height:100%;overflow:hidden}
+*{box-sizing:border-box}
+@keyframes pulse-food{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+@keyframes fade-in{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+@keyframes score-pop{0%{transform:scale(1)}50%{transform:scale(1.4)}100%{transform:scale(1)}}
+.fade-in{animation:fade-in .4s ease-out}
+.shake{animation:shake .3s ease-out}
+.score-pop{animation:score-pop .25s ease-out}
+.dpad-btn{transition:transform .08s,box-shadow .08s}
+.dpad-btn:active{transform:scale(.9)!important;box-shadow:none!important}
+.glow-green{text-shadow:0 0 20px #39ff14,0 0 40px #39ff14}
+.glow-box{box-shadow:0 0 15px rgba(57,255,20,.3)}
+</style>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full" style="background:#0f172a;font-family:'Rajdhani',sans-serif">
+  <div id="app" class="h-full w-full flex flex-col items-center justify-center relative overflow-hidden">
+   <!-- Landing Page -->
+   <div id="landing" class="flex flex-col items-center justify-center h-full w-full fade-in px-4">
+    <div class="text-center">
+     <h1 id="title-text" class="text-5xl md:text-7xl font-black glow-green mb-3" style="font-family:'Orbitron',monospace;color:#39ff14">Snake Game</h1>
+     <p id="subtitle-el" class="text-lg md:text-xl mb-10" style="color:#94a3b8">Swipe or use controls to play</p><button id="start-btn" onclick="startGame()" class="px-10 py-4 rounded-2xl text-xl font-bold tracking-wider transition-all duration-200 hover:scale-105 active:scale-95 glow-box" style="background:#39ff14;color:#0f172a;font-family:'Orbitron',monospace"> START GAME </button>
+    </div>
+   </div><!-- Game Screen -->
+   <div id="game-screen" class="hidden flex flex-col h-full w-full">
+    <!-- Top Bar -->
+    <div class="flex items-center justify-between px-4 py-3 shrink-0" style="background:rgba(15,23,42,.9)">
+     <div class="text-center">
+      <div class="text-xs uppercase tracking-wider" style="color:#64748b">
+       High
+      </div>
+      <div id="high-score" class="text-lg font-bold" style="color:#facc15;font-family:'Orbitron',monospace">
+       0
+      </div>
+     </div>
+     <div class="text-center">
+      <div class="text-xs uppercase tracking-wider" style="color:#64748b">
+       Score
+      </div>
+      <div id="score" class="text-2xl font-bold" style="color:#39ff14;font-family:'Orbitron',monospace">
+       0
+      </div>
+     </div><button onclick="pauseGame()" class="w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90" style="background:#1e293b;border:1px solid #334155"> <i data-lucide="pause" style="color:#94a3b8;width:20px;height:20px"></i> </button>
+    </div><!-- Canvas Area -->
+    <div class="flex-1 flex items-center justify-center px-4 py-2 min-h-0">
+     <canvas id="canvas" class="rounded-xl" style="border:2px solid #1e293b;background:#020617"></canvas>
+    </div><!-- D-Pad -->
+    <div class="shrink-0 pb-4 pt-2 flex justify-center">
+     <div class="grid grid-cols-3 gap-2" style="width:180px;height:180px">
+      <div></div><button onclick="setDir(0,-1)" class="dpad-btn rounded-xl flex items-center justify-center" style="background:#1e293b;border:1px solid #334155;box-shadow:0 4px 8px rgba(0,0,0,.4)"> <i data-lucide="chevron-up" style="color:#39ff14;width:28px;height:28px"></i> </button>
+      <div></div><button onclick="setDir(-1,0)" class="dpad-btn rounded-xl flex items-center justify-center" style="background:#1e293b;border:1px solid #334155;box-shadow:0 4px 8px rgba(0,0,0,.4)"> <i data-lucide="chevron-left" style="color:#39ff14;width:28px;height:28px"></i> </button>
+      <div class="rounded-xl flex items-center justify-center" style="background:#0f172a;border:1px solid #1e293b">
+       <div class="w-3 h-3 rounded-full" style="background:#334155"></div>
+      </div><button onclick="setDir(1,0)" class="dpad-btn rounded-xl flex items-center justify-center" style="background:#1e293b;border:1px solid #334155;box-shadow:0 4px 8px rgba(0,0,0,.4)"> <i data-lucide="chevron-right" style="color:#39ff14;width:28px;height:28px"></i> </button>
+      <div></div><button onclick="setDir(0,1)" class="dpad-btn rounded-xl flex items-center justify-center" style="background:#1e293b;border:1px solid #334155;box-shadow:0 4px 8px rgba(0,0,0,.4)"> <i data-lucide="chevron-down" style="color:#39ff14;width:28px;height:28px"></i> </button>
+      <div></div>
+     </div>
+    </div>
+   </div><!-- Pause Modal -->
+   <div id="pause-modal" class="hidden absolute inset-0 flex items-center justify-center z-50" style="background:rgba(0,0,0,.7);backdrop-filter:blur(4px)">
+    <div class="fade-in rounded-2xl p-8 text-center mx-4" style="background:#1e293b;border:1px solid #334155;min-width:280px">
+     <h2 class="text-3xl font-bold mb-6" style="color:#facc15;font-family:'Orbitron',monospace">PAUSED</h2><button onclick="resumeGame()" class="w-full py-3 rounded-xl text-lg font-bold mb-3 transition-all active:scale-95" style="background:#39ff14;color:#0f172a;font-family:'Orbitron',monospace">RESUME</button> <button onclick="goHome()" class="w-full py-3 rounded-xl text-lg font-bold transition-all active:scale-95" style="background:#334155;color:#94a3b8;font-family:'Orbitron',monospace">HOME</button>
+    </div>
+   </div><!-- Game Over Modal -->
+   <div id="gameover-modal" class="hidden absolute inset-0 flex items-center justify-center z-50" style="background:rgba(0,0,0,.7);backdrop-filter:blur(4px)">
+    <div class="fade-in rounded-2xl p-8 text-center mx-4" style="background:#1e293b;border:1px solid #334155;min-width:280px">
+     <h2 class="text-3xl font-bold mb-2" style="color:#ef4444;font-family:'Orbitron',monospace">GAME OVER</h2>
+     <p class="text-5xl font-black my-4" style="color:#39ff14;font-family:'Orbitron',monospace" id="final-score">0</p>
+     <p class="text-sm mb-6" style="color:#64748b">FINAL SCORE</p><button onclick="restartGame()" class="w-full py-3 rounded-xl text-lg font-bold mb-3 transition-all active:scale-95" style="background:#39ff14;color:#0f172a;font-family:'Orbitron',monospace">PLAY AGAIN</button> <button onclick="goHome()" class="w-full py-3 rounded-xl text-lg font-bold transition-all active:scale-95" style="background:#334155;color:#94a3b8;font-family:'Orbitron',monospace">HOME</button>
+    </div>
+   </div>
+  </div>
+  <script>
+// Config & SDK
+const defaultConfig = {
+  game_title: 'Snake Game',
+  subtitle_text: 'Swipe or use controls to play',
+  background_color: '#0f172a',
+  snake_color: '#39ff14',
+  text_color: '#94a3b8',
+  accent_color: '#facc15',
+  surface_color: '#1e293b',
+  font_family: 'Orbitron',
+  font_size: 16
+};
+
+function applyConfig(c) {
+  document.getElementById('title-text').textContent = c.game_title || defaultConfig.game_title;
+  document.getElementById('subtitle-el').textContent = c.subtitle_text || defaultConfig.subtitle_text;
+  const ff = (c.font_family || defaultConfig.font_family) + ', monospace';
+  document.getElementById('title-text').style.fontFamily = ff;
+}
+
+// Sound - Preload for instant playback
+const eatSound = new Audio("sounds/eat.mp3");
+const gameOverSound = new Audio("sounds/gameover.mp3");
+
+eatSound.volume = 0.5;
+eatSound.playbackRate = 1.1;
+
+gameOverSound.volume = 0.7;
+
+eatSound.preload = "auto";
+gameOverSound.preload = "auto";
+
+function playSound(s) {
+  const sound = s.cloneNode(); // fresh copy = no delay
+  sound.play().catch(() => {});
+}
+
+// Game State
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const GRID = 20;
+let cols, rows, cellSize;
+let snake, dir, nextDir, food, score, highScore, speed, gameLoop, paused, alive;
+
+highScore = parseInt(localStorage.getItem('snakeHigh') || '0');
+
+function sizeCanvas() {
+  const area = document.querySelector('.flex-1');
+  if (!area) return;
+  const s = Math.min(area.clientWidth - 32, area.clientHeight - 16);
+  const size = Math.floor(s / GRID) * GRID;
+  canvas.width = size;
+  canvas.height = size;
+  cellSize = size / GRID;
+  cols = rows = GRID;
+}
+
+function resetState() {
+  const mid = Math.floor(GRID / 2);
+  snake = [{x:mid,y:mid},{x:mid-1,y:mid},{x:mid-2,y:mid}];
+  dir = {x:1,y:0}; nextDir = {x:1,y:0};
+  score = 0; speed = 150; paused = false; alive = true;
+  spawnFood();
+  updateUI();
+}
+
+function spawnFood() {
+  let pos;
+  do { pos = {x:Math.floor(Math.random()*cols),y:Math.floor(Math.random()*rows)} }
+  while (snake.some(s=>s.x===pos.x&&s.y===pos.y));
+  food = pos;
+}
+
+function updateUI() {
+  document.getElementById('score').textContent = score;
+  document.getElementById('high-score').textContent = highScore;
+}
+
+function setDir(x,y) {
+  if (dir.x===-x && dir.y===-y) return;
+  if (dir.x===x && dir.y===y) return;
+  nextDir = {x,y};
+}
+
+function tick() {
+  if (paused || !alive) return;
+  dir = {...nextDir};
+  const head = {x:snake[0].x+dir.x, y:snake[0].y+dir.y};
+
+  if (head.x<0||head.x>=cols||head.y<0||head.y>=rows||snake.some(s=>s.x===head.x&&s.y===head.y)) {
+    alive = false;
+    playSound(gameOverSound);
+    canvas.classList.add('shake');
+    setTimeout(()=>canvas.classList.remove('shake'),300);
+    if (score > highScore) { highScore = score; localStorage.setItem('snakeHigh', highScore); }
+    document.getElementById('final-score').textContent = score;
+    document.getElementById('gameover-modal').classList.remove('hidden');
+    clearInterval(gameLoop);
+    return;
+  }
+
+  snake.unshift(head);
+  if (head.x===food.x&&head.y===food.y) {
+    playSound(eatSound);
+    score++;
+    const el = document.getElementById('score');
+    el.classList.remove('score-pop');
+    void el.offsetWidth;
+    el.classList.add('score-pop');
+    spawnFood();
+    if (score%5===0 && speed>60) {
+      speed -= 10;
+      clearInterval(gameLoop);
+      gameLoop = setInterval(tick, speed);
+    }
+  } else {
+    snake.pop();
+  }
+  updateUI();
+  draw();
+}
+
+function draw() {
+  const c = cellSize;
+  ctx.fillStyle = '#020617';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // Grid lines
+  ctx.strokeStyle = '#0f172a';
+  ctx.lineWidth = 0.5;
+  for (let i=0;i<=GRID;i++){
+    ctx.beginPath();ctx.moveTo(i*c,0);ctx.lineTo(i*c,canvas.height);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,i*c);ctx.lineTo(canvas.width,i*c);ctx.stroke();
+  }
+
+  // Food
+  const ft = Date.now()/300;
+  const fs = 0.7 + Math.sin(ft)*0.15;
+  ctx.save();
+  ctx.translate((food.x+.5)*c,(food.y+.5)*c);
+  ctx.scale(fs,fs);
+  ctx.shadowColor='#ef4444';ctx.shadowBlur=12;
+  ctx.fillStyle='#ef4444';
+  ctx.beginPath();ctx.arc(0,0,c*.4,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.fillStyle='#fbbf24';
+  ctx.beginPath();ctx.arc(-c*.1,-c*.1,c*.12,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+
+  // Snake
+  snake.forEach((s,i)=>{
+    const r = c*.45;
+    ctx.shadowColor = i===0?'#39ff14':'transparent';
+    ctx.shadowBlur = i===0?10:0;
+    const alpha = 1 - (i/snake.length)*.4;
+    ctx.fillStyle = i===0?'#39ff14':`rgba(57,255,20,${alpha})`;
+    ctx.beginPath();
+    ctx.roundRect(s.x*c+c*.05, s.y*c+c*.05, c*.9, c*.9, c*.2);
+    ctx.fill();
+    ctx.shadowBlur=0;
+    if(i===0){
+      ctx.fillStyle='#0f172a';
+      const ex=dir.x*.15,ey=dir.y*.15;
+      ctx.beginPath();ctx.arc((s.x+.35+ex)*c,(s.y+.35+ey)*c,c*.08,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc((s.x+.65+ex)*c,(s.y+.35+ey)*c,c*.08,0,Math.PI*2);ctx.fill();
+    }
+  });
+}
+
+function startGame() {
+  [eatSound, gameOverSound].forEach(s => {
+    s.muted = true;
+    s.play().then(() => {
+      s.pause();
+      s.currentTime = 0;
+      s.muted = false;
+    }).catch(()=>{});
+  });
+  document.getElementById('landing').classList.add('hidden');
+  document.getElementById('game-screen').classList.remove('hidden');
+  sizeCanvas();
+  resetState();
+  draw();
+  gameLoop = setInterval(tick, speed);
+}
+
+function pauseGame() {
+  if(!alive)return;
+  paused=true;
+  document.getElementById('pause-modal').classList.remove('hidden');
+}
+
+function resumeGame() {
+  paused=false;
+  document.getElementById('pause-modal').classList.add('hidden');
+}
+
+function goHome() {
+  clearInterval(gameLoop);
+  document.getElementById('game-screen').classList.add('hidden');
+  document.getElementById('pause-modal').classList.add('hidden');
+  document.getElementById('gameover-modal').classList.add('hidden');
+  document.getElementById('landing').classList.remove('hidden');
+  updateUI();
+}
+
+function restartGame() {
+  document.getElementById('gameover-modal').classList.add('hidden');
+  resetState();
+  draw();
+  gameLoop = setInterval(tick, speed);
+}
+
+// Keyboard
+document.addEventListener('keydown', e=>{
+  const map={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]};
+  if(map[e.key])setDir(...map[e.key]);
+  if(e.key==='Escape'&&!paused&&alive)pauseGame();
+  else if(e.key==='Escape'&&paused)resumeGame();
+});
+
+window.addEventListener('resize', ()=>{
+  if(!document.getElementById('game-screen').classList.contains('hidden')){
+    sizeCanvas(); draw();
+  }
+});
+
+lucide.createIcons();
+</script>
+</html>
